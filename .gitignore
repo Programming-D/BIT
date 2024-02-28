@@ -1,4 +1,4 @@
-./Dataset/*
-./modes/*
-./Result/*
-./Weight/*
+./Dataset/
+./modes/
+./Result/
+./Weight/
