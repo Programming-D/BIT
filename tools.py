@@ -35,10 +35,11 @@ def normalize(x,norm):
         x[x > 250] = 250
         x[x < -150] = -150
         y = (x - x.min()) / (x.max() - x.min())
+    # y = (x-x.mean())/x.std()
     
     return y
 
-def Dice(vol1, vol2, labels, nargout=1):
+def Dice(vol1, vol2, labels, nargout=1, flag=0):
     '''
     Dice [1] volume overlap metric
 

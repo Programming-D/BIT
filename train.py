@@ -50,6 +50,10 @@ def train_model(model,warp_train, warp_valid, optimizer, args, labels):
     rec.writelines('\n')
     rec.writelines('# generator parameters:'+str(sum(param.numel() for param in model.parameters())))
     rec.writelines('\n')
+    with open("./Result/loss_curve.csv", "w", encoding='utf-8') as f:
+        f.write("epoch,step,atlas_loss,smooth_loss,semantic_consistency,atlas_loss_msd,anatomical_consistency\n")
+    with open("./Result/epoch_loss_curve.csv", "w", encoding='utf-8') as f:
+        f.write("epoch,loss,atlas_loss,smooth_loss,semantic_consistency,atlas_loss_msd,anatomical_consistency\n")
 
     for epoch in range(args.epochs):
         
@@ -103,7 +107,9 @@ def train_model(model,warp_train, warp_valid, optimizer, args, labels):
                     semantic_consistency = 1 - torch.mean(torch.from_numpy(dice_loss).cuda())
                     # print(smooth_loss, atlas_loss, semantic_consistency, atlas_loss_msd, anatomical_consistency)
 
-                    loss_G = atlas_loss+smooth_loss
+                    loss_G = atlas_loss+smooth_loss+semantic_consistency+atlas_loss_msd+anatomical_consistency
+                    with open("./Result/loss_curve.csv", "a", encoding='utf-8') as f:
+                        f.write(f"{epoch},{i_batch},{atlas_loss},{smooth_loss},{semantic_consistency},{atlas_loss_msd},{anatomical_consistency}\n")
                     # print()
                     # print(smooth_loss, atlas_loss, semantic_consistency, atlas_loss_msd, anatomical_consistency)
             
@@ -122,6 +128,8 @@ def train_model(model,warp_train, warp_valid, optimizer, args, labels):
                     print('%s Loss: %.4f'%(phase, train_loss)) 
                     rec.writelines('train epoch:{}, loss:{:f}, semantic_consistency loss:{:f}, anatomical_consistency loss:{:f}, smooth loss:{:f}'.format(epoch,train_loss, semantic_consistency_all / len(dataset_train), anatomical_consistency_all / len(dataset_train), smooth_loss_all / len(dataset_train) ))
                     rec.writelines('\n')
+                    with open("./Result/epoch_loss_curve.csv", "a", encoding='utf-8') as f:
+                        f.write(f"{epoch},{train_loss},{semantic_consistency_all / len(dataset_train)},{anatomical_consistency_all / len(dataset_train)},{smooth_loss_all / len(dataset_train)}\n")
                     
             #valid
             else:

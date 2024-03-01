@@ -5,15 +5,17 @@ import torch.nn.functional as F
 
 import os
 import numpy as np
+from collections import Counter
 import matplotlib.image as mpimg
 from scipy.ndimage import zoom
 
 def eval_model_single(model,warp_model_valid,dataloader_valid,data_num):
 
-    labels = [1,    # spleen
-              2,    # right kidney
-              3,    # left kidney
-              6]    # liver
+    labels = [    # background
+                      1,    # spleen
+                      2,    # right kidney
+                      3,    # left kidney
+                      6]    # liver
     model.cuda()
     warp_model_valid.cuda()
     model.eval()
@@ -63,32 +65,53 @@ def eval_model_single(model,warp_model_valid,dataloader_valid,data_num):
             registered_img = registered_img.squeeze().cpu().numpy()
             ID = sample_batched['target_ID'][0].split('_')[1]
             
-            if modality == 'MR':
-                target_segs = os.listdir('../Dataset/CHAOS/data_process/label/' + ID +'/T2SPIR/Ground')
-                target_segs.sort()
-                for i in range(len(target_segs)):
-                    if i == 0:
-                        target_seg = mpimg.imread('../Dataset/CHAOS/data_process/label/' + ID +'/T2SPIR/Ground/'+target_segs[i])[...,np.newaxis]
-                    else:
-                        mask = mpimg.imread('../Dataset/CHAOS/data_process/label/' + ID +'/T2SPIR/Ground/'+target_segs[i])[...,np.newaxis]
-                        target_seg = np.concatenate((target_seg,mask),axis=2)
-                target_seg = np.rot90(target_seg,-1)      
-                target_seg[target_seg == 0.9882353] = 1
-                target_seg[target_seg == 0.49411765] = 2
-                target_seg[target_seg == 0.7411765] = 3
-                target_seg[target_seg == 0.24705882] = 6
-                target_seg[target_seg == 0] = 0
+            # if modality == 'MR':
+            #     target_segs = os.listdir('../Dataset/CHAOS/data_process/label/' + ID +'/T2SPIR/Ground')
+            #     target_segs.sort()
+            #     for i in range(len(target_segs)):
+            #         if i == 0:
+            #             target_seg = mpimg.imread('../Dataset/CHAOS/data_process/label/' + ID +'/T2SPIR/Ground/'+target_segs[i])[...,np.newaxis]
+            #         else:
+            #             mask = mpimg.imread('../Dataset/CHAOS/data_process/label/' + ID +'/T2SPIR/Ground/'+target_segs[i])[...,np.newaxis]
+            #             target_seg = np.concatenate((target_seg,mask),axis=2)
+            #     target_seg = np.rot90(target_seg,-1)      
+            #     target_seg[target_seg == 0.9882353] = 1
+            #     target_seg[target_seg == 0.49411765] = 2
+            #     target_seg[target_seg == 0.7411765] = 3
+            #     target_seg[target_seg == 0.24705882] = 6
+            #     target_seg[target_seg == 0] = 0
             
-            if modality == 'CT':
-                target_seg,_,_,_ = read_nii('../Dataset/BTCV/data/label_'+str(int(ID) + 43)+'.nii.gz')
+            # if modality == 'CT':
+            #     target_seg,_,_,_ = read_nii('../Dataset/BTCV/data/label_'+str(int(ID) + 43)+'.nii.gz')
+                
+            target_seg = sample_batched["target_label"].squeeze().cpu().numpy()
+            # print(target_seg)
+            # with open("target_np.txt", 'w') as outfile:
+            #     for line in target_seg:
+            #         np.savetxt(outfile, line, delimiter=',', fmt='%d')
+            #         outfile.write("\n")
+            # with open("register_np.txt", 'w') as outfile:
+            #     for line in registered_seg:
+            #         np.savetxt(outfile, line, delimiter=',', fmt='%d')
+            #         outfile.write("\n")
+            # np.savetxt("target_np.txt", target_seg, delimiter=',', fmt='%d')
+            # np.savetxt("register_np.txt", registered_seg, delimiter=',', fmt='%d')
+            # exit(0)
+            # print(Counter(registered_seg.flatten()))
+            
+            # target_seg = normalize(target_seg, "win_maxmin" if modality == "MR" else "win")
+            _, header, affine, spacing = read_nii(sample_batched["target_path"][0])
+            save_nii(registered_seg, header, affine, "./Result/new.nii.gz")
 
-            resample_size = registered_seg.shape
-            origin_shape = target_seg.shape
-            resize_factor = 1.0 *  np.asarray(origin_shape) / np.asarray(resample_size)
-            registered_seg = zoom(registered_seg,resize_factor, order=0)
-            
-            
-            dicem = Dice(registered_seg, target_seg, labels)
+            # resample_size = registered_seg.shape
+            # origin_shape = target_seg.shape
+            # print(resample_size, origin_shape)
+            # resize_factor = 1.0 *  np.asarray(origin_shape) / np.asarray(resample_size)
+            # registered_seg = zoom(registered_seg,resize_factor, order=0)
+            # print(target_seg != np.zeros(target_seg.shape))
+            # print(np.sum(np.logical_and(target_seg == torch.Tensor(1), registered_seg == 1)))
+            dicem = Dice(target_seg, registered_seg, labels, flag = 1)
+            # print(dicem)
             dice_valid += np.mean(dicem) * len(sample_batched['target_ID'])
 
     dice_valid = dice_valid / data_num

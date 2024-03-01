@@ -105,6 +105,7 @@
 
 import pathlib
 import numpy as np
+from collections import Counter
 import nibabel as nib
 from sklearn import preprocessing
 
@@ -132,15 +133,19 @@ class SegDataset(Dataset):
             atlas_label_path = pathlib.Path(self.path, "train", atlas, "seg.nii.gz")
             atlas_label, _, _, _ = read_nii(atlas_label_path)
             atlas_label = torch.Tensor(np.round(atlas_label[np.newaxis, ...]))
+            # print(Counter(atlas_label.flatten().cpu().numpy()))
             if atlas.split('_')[0] == 'CT':
                 atlas_img = normalize(atlas_img, "win")
-                save_nii(atlas_img, header, affine, "./procimgct.nii.ga")
+                
+                save_nii(atlas_img.squeeze(), header, affine, "./Result/procimgct.nii.gz")
                 self.atlas_img_ct.append(atlas_img)
                 self.atlas_label_ct.append(atlas_label)
                 self.atlas_ct_meta.append([header, affine, spacing])
             else:
+                save_nii(atlas_img.squeeze(), header, affine, "./Result/procimgmr1.nii.gz")
                 atlas_img = normalize(atlas_img, "win_maxmin")
-                save_nii(atlas_img, header, affine, "./procimgct.nii.ga")
+                # print(Counter(atlas_img.flatten().cpu().numpy()))
+                save_nii(atlas_img.squeeze(), header, affine, "./Result/procimgmr.nii.gz")
                 self.atlas_img_mr.append(atlas_img)
                 self.atlas_label_mr.append(atlas_label)
                 self.atlas_mr_meta.append([header, affine, spacing])
