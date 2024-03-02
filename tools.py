@@ -29,13 +29,13 @@ def save_nii(data, header, affine, path):
 def normalize(x,norm):    
     if norm == 'win_maxmin':
         x[x > 1000] = 1000
-        y = (x - x.min()) / (x.max() - x.min())
+        # y = (x - x.min()) / (x.max() - x.min())
     
     if norm == 'win':
         x[x > 250] = 250
         x[x < -150] = -150
-        y = (x - x.min()) / (x.max() - x.min())
-    # y = (x-x.mean())/x.std()
+        # y = (x - x.min()) / (x.max() - x.min())
+    y = (x-x.mean())/x.std()
     
     return y
 

@@ -2,3 +2,4 @@ Dataset/
 Result/
 Weight/
 __pycache__/
+wandb/

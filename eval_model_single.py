@@ -100,8 +100,9 @@ def eval_model_single(model,warp_model_valid,dataloader_valid,data_num):
             # print(Counter(registered_seg.flatten()))
             
             # target_seg = normalize(target_seg, "win_maxmin" if modality == "MR" else "win")
-            _, header, affine, spacing = read_nii(sample_batched["target_path"][0])
+            data, header, affine, spacing = read_nii(sample_batched["target_path"][0])
             save_nii(registered_seg, header, affine, "./Result/new.nii.gz")
+            save_nii(target_seg, header, affine, "./Result/ori.nii.gz")
 
             # resample_size = registered_seg.shape
             # origin_shape = target_seg.shape

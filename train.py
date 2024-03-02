@@ -18,8 +18,12 @@ import copy
 import random
 import argparse
 from tqdm import tqdm
+import wandb
+
 
 from matplotlib.pyplot import imsave
+
+wandb.init(project="my-project")
 
 parser = argparse.ArgumentParser(description='few-shot segmentation')
 
@@ -53,7 +57,9 @@ def train_model(model,warp_train, warp_valid, optimizer, args, labels):
     with open("./Result/loss_curve.csv", "w", encoding='utf-8') as f:
         f.write("epoch,step,atlas_loss,smooth_loss,semantic_consistency,atlas_loss_msd,anatomical_consistency\n")
     with open("./Result/epoch_loss_curve.csv", "w", encoding='utf-8') as f:
-        f.write("epoch,loss,atlas_loss,smooth_loss,semantic_consistency,atlas_loss_msd,anatomical_consistency\n")
+        f.write("epoch,loss,smooth_loss,semantic_consistency,anatomical_consistency\n")
+    with open("./Result/valid_curve.csv", "w", encoding='utf-8') as f:
+        f.write("epoch,valid_dice\n")
 
     for epoch in range(args.epochs):
         
@@ -110,6 +116,7 @@ def train_model(model,warp_train, warp_valid, optimizer, args, labels):
                     loss_G = atlas_loss+smooth_loss+semantic_consistency+atlas_loss_msd+anatomical_consistency
                     with open("./Result/loss_curve.csv", "a", encoding='utf-8') as f:
                         f.write(f"{epoch},{i_batch},{atlas_loss},{smooth_loss},{semantic_consistency},{atlas_loss_msd},{anatomical_consistency}\n")
+                    wandb.log({"epoch": epoch, "step": i_batch, "atlas_loss": atlas_loss, "smooth_loss": smooth_loss, "semantic_consistency": semantic_consistency, "atlas_loss_msd": atlas_loss_msd, "anatomical_consistency": anatomical_consistency})
                     # print()
                     # print(smooth_loss, atlas_loss, semantic_consistency, atlas_loss_msd, anatomical_consistency)
             
@@ -130,6 +137,7 @@ def train_model(model,warp_train, warp_valid, optimizer, args, labels):
                     rec.writelines('\n')
                     with open("./Result/epoch_loss_curve.csv", "a", encoding='utf-8') as f:
                         f.write(f"{epoch},{train_loss},{semantic_consistency_all / len(dataset_train)},{anatomical_consistency_all / len(dataset_train)},{smooth_loss_all / len(dataset_train)}\n")
+                    wandb.log({"epoch": epoch, "loss": train_loss, "smooth_loss": smooth_loss_all / len(dataset_train), "semantic_consistency": semantic_consistency_all / len(dataset_train), "anatomical_consistency": anatomical_consistency_all / len(dataset_train)})
                     
             #valid
             else:
@@ -142,7 +150,10 @@ def train_model(model,warp_train, warp_valid, optimizer, args, labels):
                     dice = eval_model_single(model, warp_valid, dataloader_valid, len(dataset_valid))
                     print('valid epoch:%d, dice loss:%.4f'%((epoch + 1), dice))
                     rec = open(record_path,'a')  
-                    rec.writelines('valid epoch:%d, dice loss:%.4f'%((epoch + 1), (dice / len(dataset_valid))))
+                    rec.writelines('valid epoch:%d, dice loss:%.4f'%((epoch + 1), dice))
+                    with open("./Result/valid_curve.csv", "a", encoding='utf-8') as f:
+                        f.write(f"{epoch},{dice}\n")
+                    wandb.log({"epoch": epoch, "dice": dice})
                     if dice > best_dice:
                         best_dice = dice
                         torch.save(model.state_dict(), args.save_path + '/epoch_%d_dice_%.4f_.pth'%(epoch+1,dice))
